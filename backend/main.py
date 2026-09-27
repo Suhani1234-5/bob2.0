@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from database import init_db
 from routers.verify import router as verify_router
 from routers.debug import router as debug_router
+from routers.fix_verify import router as fix_verify_router
 
 
 @asynccontextmanager
@@ -26,6 +27,7 @@ app.add_middleware(
 
 app.include_router(verify_router)
 app.include_router(debug_router)
+app.include_router(fix_verify_router)
 
 
 @app.get("/api/health")
