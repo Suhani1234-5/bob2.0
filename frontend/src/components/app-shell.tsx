@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 const navigation = [
   { label: "Overview", icon: LayoutDashboard, href: "/" },
   { label: "Findings", icon: CircleDot, href: "/findings" },
-  { label: "Agents", icon: Braces, href: "/#agents" },
+  { label: "Agents", icon: Braces, href: "/pipeline" },
   { label: "Tests", icon: TestTube2, href: "/#tests" },
   { label: "Changes", icon: FileDiff, href: "/#changes" },
   { label: "Proof Trail", icon: ShieldCheck, href: "/findings/FND-001#proof-trail" },
@@ -22,7 +22,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     <aside className={cn("fixed inset-y-0 left-0 z-40 flex w-60 flex-col border-r border-border bg-sidebar transition-transform lg:translate-x-0", mobileOpen ? "translate-x-0" : "-translate-x-full")}>
       <div className="flex h-[68px] items-center gap-2.5 border-b border-border px-5">
         <div className="flex size-8 items-center justify-center rounded-md bg-primary text-primary-foreground"><FileCheck2 size={18} strokeWidth={2.5} /></div>
-        <span className="text-[17px] font-bold tracking-normal">Proof<span className="text-primary">PR</span></span>
+        <span className="text-[17px] font-bold tracking-normal">Bob<span className="text-primary">Spot</span></span>
         <Button variant="ghost" className="ml-auto size-8 px-0 lg:hidden" aria-label="Close navigation" onClick={() => setMobileOpen(false)}><PanelLeftClose size={17}/></Button>
       </div>
       <div className="px-3 pt-5">
@@ -34,7 +34,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Workspace</div>
         <nav aria-label="Main navigation" className="space-y-0.5">
           {navigation.map(({ label, icon: Icon, href }) => {
-            const active = label === "Overview" ? pathname === "/" : label === "Findings" ? pathname === "/findings" : label === "Proof Trail" ? pathname.startsWith("/findings/") : false;
+            const active = label === "Overview" ? pathname === "/" : label === "Findings" ? pathname === "/findings" : label === "Agents" ? pathname === "/pipeline" : label === "Proof Trail" ? pathname.startsWith("/findings/") : false;
             return <a key={label} href={href} onClick={() => setMobileOpen(false)} className={cn("flex h-9 items-center gap-3 rounded-md px-3 text-[12px] font-medium transition-colors", active ? "bg-primary/12 text-primary" : "text-muted-foreground hover:bg-accent hover:text-foreground")}><Icon size={16} strokeWidth={1.8}/><span>{label}</span>{label === "Findings" && <span className="ml-auto rounded bg-soft px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">7</span>}</a>;
           })}
         </nav>
