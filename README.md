@@ -137,6 +137,7 @@ BobSpot uses specialized IBM Bob agents, each with a focused responsibility.
 <p align="center">
   <img src="./frontend/public/demo2.png" alt="BobSpot Workflow" width="800">
 </p>
+
 ## 1. Requirement Agent
 
 First, BobSpot determines what the pull request is actually supposed to accomplish.
