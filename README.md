@@ -1,6 +1,9 @@
 # BobSpot
 
 ### **Spot it. Test it. Prove it.**
+<p align="center">
+  <img src="./frontend/public/demo1.png" alt="BobSpot" width="100%" style="max-height: 300px; object-fit: cover;">
+</p>
 
 BobSpot is an **evidence-backed, multi-agent pull request verification system powered by IBM Bob**.
 
@@ -129,7 +132,11 @@ BobSpot uses specialized IBM Bob agents, each with a focused responsibility.
                               ↓
                        Proof Generator
 ```
+## Workflow
 
+<p align="center">
+  <img src="./frontend/public/demo2.png" alt="BobSpot Workflow" width="800">
+</p>
 ## 1. Requirement Agent
 
 First, BobSpot determines what the pull request is actually supposed to accomplish.
