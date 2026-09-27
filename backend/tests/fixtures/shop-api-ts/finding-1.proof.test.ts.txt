@@ -1,0 +1,11 @@
+import { Coupon, CouponService, InvalidCoupon } from "../../src/coupon.service";
+
+const NOW = new Date("2026-03-14T12:00:00Z");
+
+describe("Finding #1 reproduction", () => {
+  it("rejects a coupon that expired yesterday at checkout", () => {
+    const expired: Coupon = { code: "FLASH48", enabled: true, discount: 20, expiresAt: new Date("2026-03-13T12:00:00Z") };
+    const service = new CouponService(new Map([["FLASH48", expired]]), () => NOW);
+    expect(() => service.applyCoupon("FLASH48", 100)).toThrow(InvalidCoupon);
+  });
+});
