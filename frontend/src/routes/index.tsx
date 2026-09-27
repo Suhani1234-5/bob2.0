@@ -7,9 +7,9 @@ import { findings } from "@/lib/proof-data";
 
 export const Route = createFileRoute("/")({
   head: () => ({ meta: [
-    { title: "Overview · PR #42 | ProofPR" },
+    { title: "Overview · PR #42 | BobSpot" },
     { name: "description", content: "Verification overview for shop-api pull request #42, with findings, test results and proof confidence." },
-    { property: "og:title", content: "PR #42 Verification Overview | ProofPR" },
+    { property: "og:title", content: "PR #42 Verification Overview | BobSpot" },
     { property: "og:description", content: "Explore verified findings, test results and proof confidence for shop-api pull request #42." },
     { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" },
   ] }), component: Overview,

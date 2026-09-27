@@ -1,5 +1,5 @@
 export type Severity = "critical" | "high" | "medium" | "low";
-export type FindingStatus = "PROVEN FIXED" | "PROVEN" | "REJECTED" | "UNVERIFIED";
+export type FindingStatus = "PROVEN FIXED" | "PROVEN" | "REJECTED" | "UNVERIFIED" | "FIX FAILED";
 export type Finding = {
   id: string;
   title: string;
@@ -14,12 +14,14 @@ export type Finding = {
   actual: string;
   before_fix_result: string;
   code_evidence: { line: number; code: string; flagged?: boolean }[];
+  full_file_content?: { line: number; code: string }[];
   patch_diff: { type: "context" | "removed" | "added"; code: string; oldLine?: number; newLine?: number }[];
   adversarial_tests: { name: string; passed: boolean }[];
   regression: { unit: [number, number]; integration: [number, number]; proof: [number, number]; total: [number, number] };
   final_status: FindingStatus;
   reason?: string;
   evidence_discovered?: string;
+  failing_checks?: string[];
 };
 
 const regression: Finding["regression"] = { unit: [34, 34], integration: [13, 13], proof: [7, 7], total: [54, 54] };
@@ -38,6 +40,47 @@ export const findings: Finding[] = [
       { line: 83, code: "  if (!coupon.isActive) throw new CouponInactiveError();" },
       { line: 84, code: "  return coupon;", flagged: true },
       { line: 85, code: "}" },
+    ],
+    full_file_content: [
+      { line: 1,  code: "import { Injectable } from '@nestjs/common';" },
+      { line: 2,  code: "import { CouponRepository } from '../repositories/coupon.repository';" },
+      { line: 3,  code: "import { CouponNotFoundError, CouponInactiveError, CouponExpiredError } from '../errors';" },
+      { line: 4,  code: "" },
+      { line: 5,  code: "@Injectable()" },
+      { line: 6,  code: "export class CouponService {" },
+      { line: 7,  code: "  constructor(private readonly repo: CouponRepository) {}" },
+      { line: 8,  code: "" },
+      { line: 9,  code: "  async findAll() {" },
+      { line: 10, code: "    return this.repo.findAll();" },
+      { line: 11, code: "  }" },
+      { line: 12, code: "" },
+      { line: 13, code: "  async findById(id: string) {" },
+      { line: 14, code: "    return this.repo.findById(id);" },
+      { line: 15, code: "  }" },
+      { line: 16, code: "" },
+      { line: 17, code: "  async create(dto: CreateCouponDto) {" },
+      { line: 18, code: "    return this.repo.create(dto);" },
+      { line: 19, code: "  }" },
+      { line: 20, code: "" },
+      { line: 70, code: "  // ..." },
+      { line: 71, code: "" },
+      { line: 72, code: "  async applyCoupon(code: string, cart: Cart) {" },
+      { line: 73, code: "    const coupon = await this.validateCoupon(code);" },
+      { line: 74, code: "    return this.applyDiscount(coupon, cart);" },
+      { line: 75, code: "  }" },
+      { line: 76, code: "" },
+      { line: 77, code: "  private applyDiscount(coupon: Coupon, cart: Cart) {" },
+      { line: 78, code: "    const discount = coupon.amount ?? cart.subtotal * (coupon.percent / 100);" },
+      { line: 79, code: "    return Math.max(0, cart.subtotal - discount);" },
+      { line: 80, code: "  }" },
+      { line: 81, code: "" },
+      { line: 82, code: "  async validateCoupon(code: string) {" },
+      { line: 83, code: "    const coupon = await this.repo.findByCode(code);" },
+      { line: 84, code: "    if (!coupon) throw new CouponNotFoundError();" },
+      { line: 85, code: "    if (!coupon.isActive) throw new CouponInactiveError();" },
+      { line: 86, code: "    return coupon;", flagged: true },
+      { line: 87, code: "  }" },
+      { line: 88, code: "}" },
     ],
     patch_diff: [
       { type: "context", code: "  if (!coupon.isActive) throw new CouponInactiveError();", oldLine: 83, newLine: 83 },
@@ -110,6 +153,42 @@ export const findings: Finding[] = [
     expected: "Coupon remains valid until the UTC deadline.", actual: "No conclusive result yet.", before_fix_result: "PENDING",
     code_evidence: [{ line: 17, code: "export function isExpired(date: string) {" }, { line: 18, code: "  return new Date(date).getTime() < Date.now();", flagged: true }],
     patch_diff: [], adversarial_tests: [{ name: "UTC+14 boundary", passed: false }, { name: "daylight saving shift", passed: false }], regression, final_status: "UNVERIFIED", reason: "The boundary case has not been reproduced or ruled out yet.",
+  },
+  {
+    id: "FND-008", title: "Cart total recalculation skips applied coupons", severity: "high", status: "FIX FAILED",
+    file: "src/services/cart.service.ts", line: 67,
+    claim: "When items are added to a cart after a coupon is applied, the coupon discount is not reapplied during recalculation, leaving the cart total incorrect.",
+    reproduction_test: "reapplies coupon discount after cart item addition", scenario: "Apply a 10% coupon to a cart, then add a new item. Verify the discount is recalculated.",
+    expected: "Total reflects 10% off the updated subtotal.", actual: "Total only reflects 10% off the original subtotal; new item is full price.", before_fix_result: "FAILED",
+    code_evidence: [
+      { line: 64, code: "async recalculateTotal(cartId: string) {" },
+      { line: 65, code: "  const cart = await this.repo.findById(cartId);" },
+      { line: 66, code: "  const subtotal = cart.items.reduce((s, i) => s + i.price, 0);" },
+      { line: 67, code: "  cart.total = subtotal;", flagged: true },
+      { line: 68, code: "  return this.repo.save(cart);" },
+      { line: 69, code: "}" },
+    ],
+    patch_diff: [
+      { type: "context", code: "  const subtotal = cart.items.reduce((s, i) => s + i.price, 0);", oldLine: 66, newLine: 66 },
+      { type: "removed", code: "  cart.total = subtotal;", oldLine: 67 },
+      { type: "added", code: "  const discount = cart.coupon ? this.computeDiscount(cart.coupon, subtotal) : 0;", newLine: 67 },
+      { type: "added", code: "  cart.total = Math.max(0, subtotal - discount);", newLine: 68 },
+    ],
+    adversarial_tests: [
+      { name: "add item after coupon applied", passed: false },
+      { name: "remove item after coupon applied", passed: false },
+      { name: "coupon removed after item add", passed: true },
+      { name: "multiple items added sequentially", passed: false },
+      { name: "free shipping coupon unaffected", passed: true },
+    ],
+    regression: { unit: [34, 34], integration: [11, 13], proof: [5, 7], total: [50, 54] },
+    final_status: "FIX FAILED",
+    reason: "The proposed patch does not correctly handle sequential item mutations; three adversarial checks still fail after the patch was applied.",
+    failing_checks: [
+      "add item after coupon applied",
+      "remove item after coupon applied",
+      "multiple items added sequentially",
+    ],
   },
 ];
 
