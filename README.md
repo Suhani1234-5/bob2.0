@@ -1,63 +1,105 @@
+<div align="center">
+
 # BobSpot
 
 ### **Spot it. Test it. Prove it.**
+
 <p align="center">
-  <img src="./frontend/public/demo1.png" alt="BobSpot" width="100%" style="max-height: 300px; object-fit: cover;">
+  <img src="./frontend/public/demo1.png" alt="BobSpot Dashboard" width="100%">
 </p>
 
-BobSpot is an **evidence-backed, multi-agent pull request verification system powered by IBM Bob**.
+### Evidence-Backed Multi-Agent Pull Request Verification
 
-AI coding assistants can generate and review code quickly, but an AI-generated review comment is still just a **claim** until it is verified.
+**Don't just trust an AI code review. Make it prove the finding.**
 
-BobSpot adds a verification layer that investigates potential issues, collects code-level evidence, reproduces suspected bugs, generates fixes, challenges those fixes with adversarial tests, and runs regression checks before presenting the developer with a final result.
+[![IBM Bob](https://img.shields.io/badge/Powered%20by-IBM%20Bob-052FAD?style=for-the-badge)](https://www.ibm.com/)
+[![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
+[![React](https://img.shields.io/badge/React-TypeScript-61DAFB?style=for-the-badge&logo=react&logoColor=111111)](https://react.dev/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-Backend-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 
-> **Claim → Evidence → Reproduction → Fix → Challenge → Regression → Proof**
+<br/>
 
-Built with **IBM Bob** for the **IBM Bob 2.0 Hackathon**.
+**Claim → Evidence → Reproduction → Fix → Challenge → Regression → Proof**
+
+<br/>
+
+Built for the **IBM Bob 2.0 Hackathon**.
+
+</div>
 
 ---
 
-## The Problem
+## What is BobSpot?
 
-AI-assisted development has made writing and reviewing code much faster.
+BobSpot is an **evidence-backed, multi-agent pull request verification system powered by IBM Bob**.
+
+AI coding assistants can generate and review code quickly. But an AI-generated review comment is still only a **claim** until there is evidence behind it.
+
+BobSpot adds a verification layer that:
+
+- understands the pull request and its requirements
+- investigates suspicious changes
+- collects code-level evidence
+- generates executable reproductions
+- confirms or rejects suspected issues
+- creates focused fixes
+- attacks those fixes with adversarial scenarios
+- runs regression tests
+- preserves the complete verification trail
+
+> **Core idea:** A claim is not a confirmed finding until evidence supports it.
+
+---
+
+# The Problem
+
+AI-assisted development has made writing and reviewing software much faster.
 
 But when an AI reviewer says:
 
-> "This change can allow an expired coupon to be accepted."
+> **"This change can allow an expired coupon to be accepted."**
 
-the developer still has to investigate:
+the developer still needs to determine:
 
-* Is the issue actually real?
-* Which code causes it?
-* Can it be reproduced?
-* Does the proposed fix actually work?
-* What edge cases could break the fix?
-* Did the fix introduce a regression?
+| Question | Why it matters |
+|---|---|
+| Is the issue real? | AI findings can be false positives |
+| Where is the problem? | Developers need source-level evidence |
+| Can it be reproduced? | A plausible explanation is not executable proof |
+| Does the fix actually work? | A patch can solve one case and miss another |
+| What edge cases break the fix? | Boundary conditions often hide regressions |
+| Did the fix break existing behavior? | Passing the original test is not enough |
 
-Traditional AI review often looks like:
+### Traditional AI Review
 
-```text
-Pull Request
-     ↓
-AI analyzes diff
-     ↓
-AI generates finding
-     ↓
-AI suggests fix
-     ↓
-Developer verifies manually
+```mermaid
+flowchart LR
+    A["Pull Request"] --> B["AI Review"]
+    B --> C["Finding"]
+    C --> D["Suggested Fix"]
+    D --> E["Manual Verification"]
 ```
 
-This can lead to:
+### BobSpot
 
-* False-positive findings
-* Unnecessary investigation
-* Incorrect fixes
-* Missing edge cases
-* Regression risk
-* Lower trust in AI-assisted development
+```mermaid
+flowchart LR
+    A["Pull Request"] --> B["Understand Context"]
+    B --> C["Investigate"]
+    C --> D["Candidate Finding"]
+    D --> E["Collect Evidence"]
+    E --> F["Reproduce"]
 
-### The question is no longer just:
+    F -->|Not reproduced| G["Rejected / Unverified"]
+    F -->|Reproduced| H["Generate Fix"]
+
+    H --> I["Re-run Reproduction"]
+    I --> J["Adversarial Verification"]
+    J --> K["Regression Tests"]
+    K --> L["Proof Report"]
+```
+
+### The question is no longer only:
 
 > **Can AI review the code?**
 
@@ -71,85 +113,90 @@ This can lead to:
 
 BobSpot turns an AI-generated review into an **evidence-backed verification workflow**.
 
-```text
-Pull Request
-     ↓
-Understand Requirements
-     ↓
-Investigate Code
-     ↓
-Candidate Findings
-     ↓
-Collect Evidence
-     ↓
-Reproduce
-     │
-     ├── Cannot reproduce
-     │       ↓
-     │   REJECTED / UNVERIFIED
-     │
-     └── Reproduced
-             ↓
-         Generate Fix
-             ↓
-      Re-run Reproduction
-             ↓
-     Adversarial Verification
-             ↓
-       Regression Testing
-             ↓
-        Evidence Report
+```mermaid
+flowchart TD
+    A["Pull Request"] --> B["Understand Requirements"]
+    B --> C["Investigate Code"]
+    C --> D["Candidate Findings"]
+    D --> E["Collect Evidence"]
+    E --> F["Generate Reproduction"]
+
+    F --> G{"Issue Reproduced?"}
+
+    G -->|No| H["REJECTED / UNVERIFIED"]
+    G -->|Yes| I["PROVEN"]
+
+    I --> J["Generate Focused Fix"]
+    J --> K["Re-run Reproduction"]
+    K --> L["Adversarial Verification"]
+    L --> M["Regression Testing"]
+    M --> N["Evidence-Backed Result"]
 ```
 
-The fundamental principle is:
+## The verification principle
 
-> **A claim is not a confirmed finding until evidence supports it.**
+> **Evidence > Agent Agreement**
 
-BobSpot can also reject its own agents' findings when executable evidence or repository context contradicts the original claim.
+Multiple agents agreeing with one another is useful context.
+
+An executable reproduction, source evidence, and test results provide stronger support for the conclusion.
 
 ---
 
-# How It Works
+# How BobSpot Works
 
-BobSpot uses specialized IBM Bob agents, each with a focused responsibility.
+BobSpot separates responsibilities across specialized verification agents instead of asking one agent to do everything.
 
-```text
-                       Bob Orchestrator
-                              │
-        ┌─────────────────────┼─────────────────────┐
-        ↓                     ↓                     ↓
- Requirement            Investigator          Reproducer
-    Agent                   Agent                 Agent
-        └─────────────────────┼─────────────────────┘
-                              ↓
-                       Evidence Engine
-                              ↓
-                            Fixer
-                              ↓
-                    Adversarial Verifier
-                              ↓
-                      Regression Agent
-                              ↓
-                       Proof Generator
+```mermaid
+flowchart TB
+    PR["Pull Request"]
+
+    PR --> CA["Context Agent"]
+    CA --> INV["Investigator"]
+    INV --> REP["Reproducer"]
+
+    REP --> DEC{"Reproduced?"}
+
+    DEC -->|No| UNV["Rejected / Unverified"]
+    DEC -->|Yes| FIX["Fixer"]
+
+    FIX --> ADV["Adversarial Verifier"]
+    ADV --> REG["Regression Runner"]
+    REG --> PROOF["Proof Generator"]
+
+    PROOF --> REPORT["Evidence Report"]
 ```
-## Workflow
+
+| Agent | Responsibility | Output |
+|---|---|---|
+| **Context Agent** | Understand PR, issue, requirements and repository conventions | Structured context |
+| **Investigator** | Search for logical bugs, requirement violations and risky behavior | Candidate findings |
+| **Reproducer** | Attempt to trigger the suspected issue | Executable reproduction |
+| **Fixer** | Generate the smallest reasonable patch | Proposed fix |
+| **Adversarial Verifier** | Try to break the proposed fix | Edge-case results |
+| **Regression Runner** | Run existing repository tests | Regression evidence |
+| **Proof Generator** | Assemble all evidence | Verification report |
+
+---
+
+# Workflow
 
 <p align="center">
-  <img src="./frontend/public/demo2.png" alt="BobSpot Workflow" width="800">
+  <img src="./frontend/public/demo2.png" alt="BobSpot Verification Workflow" width="850">
 </p>
 
-## 1. Requirement Agent
+## 1. Understand the Requirement
 
-First, BobSpot determines what the pull request is actually supposed to accomplish.
+The Context Agent determines what the pull request is actually supposed to accomplish.
 
-It analyzes:
+It can use:
 
-* PR description
-* Issue description
-* README/documentation
-* Repository conventions
-* Acceptance criteria
-* Changed files
+- Pull request description
+- Issue description
+- README/documentation
+- Repository conventions
+- Acceptance criteria
+- Changed files
 
 Example:
 
@@ -166,22 +213,22 @@ Example:
 }
 ```
 
-This gives the rest of the verification pipeline the correct context.
+This context becomes the foundation for the rest of the verification pipeline.
 
 ---
 
-## 2. Investigator Agent
+## 2. Investigate the Change
 
-The Investigator searches the changed code for potential problems.
+The Investigator searches changed code for potential problems.
 
-It looks for:
+It can look for:
 
-* Logical bugs
-* Requirement violations
-* Edge cases
-* Error-handling problems
-* Security issues
-* Unexpected side effects
+- Logical bugs
+- Requirement violations
+- Edge cases
+- Error-handling problems
+- Security issues
+- Unexpected side effects
 
 Example:
 
@@ -197,7 +244,7 @@ The validation checks whether the coupon is enabled
 but does not compare expiresAt with the current time.
 ```
 
-At this stage, the finding is only a **candidate**.
+At this stage:
 
 ```text
 Candidate ≠ Confirmed
@@ -205,11 +252,9 @@ Candidate ≠ Confirmed
 
 ---
 
-## 3. Reproducer Agent
+## 3. Reproduce the Finding
 
-The Reproducer attempts to prove or disprove the finding.
-
-It generates the smallest useful test scenario.
+The Reproducer attempts to prove or disprove the candidate finding.
 
 Example:
 
@@ -227,19 +272,19 @@ Result:
 ✓ ISSUE REPRODUCED
 ```
 
-If the issue cannot be reproduced, BobSpot does not treat the AI claim as a confirmed defect.
+If the issue cannot be reproduced, BobSpot does **not** automatically treat the AI claim as a confirmed defect.
 
 ---
 
-## 4. Fixer Agent
+## 4. Generate a Focused Fix
 
-Once a finding has sufficient evidence, the Fixer generates a minimal patch.
+Only after sufficient evidence exists, the Fixer generates a minimal patch.
 
-The Fixer follows three principles:
+Principles:
 
-* Make the smallest reasonable change
-* Preserve existing architecture
-* Avoid unrelated refactoring
+1. Make the smallest reasonable change
+2. Preserve existing architecture
+3. Avoid unrelated refactoring
 
 Example:
 
@@ -255,13 +300,35 @@ Example:
 
 ---
 
-## 5. Adversarial Verifier
+## 5. Challenge the Fix
 
-The Fixer is **not automatically trusted**.
+The fix is **not automatically trusted**.
 
-The Adversarial Verifier tries to break the proposed solution.
+The Adversarial Verifier asks:
+
+> **What inputs could still make this fix fail?**
 
 For the coupon example:
+
+```text
+                 Proposed Fix
+                      │
+       ┌──────────────┼──────────────┐
+       ▼              ▼              ▼
+  Expired date   Exact boundary   Future date
+       │              │              │
+       └──────────────┼──────────────┘
+                      │
+              ┌───────┴────────┐
+              ▼                ▼
+        Null expiration   Disabled coupon
+              │                │
+              └───────┬────────┘
+                      ▼
+              Verification Result
+```
+
+Example scenarios:
 
 ```text
 ✓ Expired coupon
@@ -272,17 +339,13 @@ For the coupon example:
 ✓ Timezone boundary
 ```
 
-The verifier asks:
-
-> **What inputs could still make this fix fail?**
-
-This creates a second verification layer after the fix.
-
 ---
 
-## 6. Regression Agent
+## 6. Run Regression Tests
 
 BobSpot runs existing repository tests alongside generated verification tests.
+
+Example output:
 
 ```text
 Existing Tests       47/47 PASS
@@ -290,7 +353,7 @@ Reproduction Tests     1/1 PASS
 Adversarial Tests     6/6 PASS
 ```
 
-This helps detect whether the fix introduced a regression elsewhere in the codebase.
+> These numbers are illustrative examples of the interface, not project performance claims.
 
 ---
 
@@ -311,16 +374,25 @@ Reproducer
 ✕ Unauthorized request returns HTTP 403
 ```
 
-Instead of asking which agent has more votes, BobSpot evaluates the available evidence.
+Instead of asking:
 
-```text
-Executable evidence contradicts
-the original claim.
+> "Which agent has more votes?"
 
-FINAL STATUS: REJECTED
+BobSpot asks:
+
+> "What does the available evidence support?"
+
+```mermaid
+flowchart LR
+    A["Potential Finding"] --> B["Reproduction"]
+    B --> C{"Executable Evidence?"}
+
+    C -->|Supports claim| D["PROVEN"]
+    C -->|Contradicts claim| E["REJECTED"]
+    C -->|Insufficient| F["UNVERIFIED"]
 ```
 
-The goal is not to make AI agents agree.
+The goal is not to make agents agree.
 
 The goal is to determine **what the evidence actually supports**.
 
@@ -328,53 +400,42 @@ The goal is to determine **what the evidence actually supports**.
 
 # Finding Lifecycle
 
-Every finding follows a defined state machine:
+```mermaid
+stateDiagram-v2
+    [*] --> Candidate
 
-```text
-CANDIDATE
-    ↓
-INVESTIGATING
-    ↓
- ┌───────────────┐
- ↓               ↓
-PROVEN      NOT REPRODUCED
- ↓               ↓
-FIXING       REJECTED /
- ↓           UNVERIFIED
-VERIFYING
- ↓
- ┌──────────────┐
- ↓              ↓
-PROVEN FIXED   FIX FAILED
+    Candidate --> Investigating
+
+    Investigating --> Proven: Reproduced
+    Investigating --> Rejected: Evidence contradicts claim
+    Investigating --> Unverified: Insufficient evidence
+
+    Proven --> Fixing
+    Fixing --> Verifying
+
+    Verifying --> ProvenFixed: Verification passes
+    Verifying --> FixFailed: Original issue remains
+    Verifying --> FixFailed: New failure detected
+
+    ProvenFixed --> [*]
+    Rejected --> [*]
+    Unverified --> [*]
+    FixFailed --> [*]
 ```
 
-### CANDIDATE
-
-Potential issue identified by an agent.
-
-### PROVEN
-
-The suspected defect was successfully reproduced.
-
-### REJECTED
-
-Available evidence contradicts the original claim.
-
-### UNVERIFIED
-
-There is insufficient evidence to confidently confirm or reject the claim.
-
-### PROVEN FIXED
-
-The defect was reproduced before the patch, cannot be reproduced after the patch, and verification checks pass.
-
-### FIX FAILED
-
-The original defect remains or the proposed fix fails verification.
+| Status | Meaning |
+|---|---|
+| **Candidate** | Potential issue identified |
+| **Investigating** | Evidence is being collected |
+| **Proven** | Suspected defect was reproduced |
+| **Rejected** | Available evidence contradicts the claim |
+| **Unverified** | Evidence is insufficient to reach a conclusion |
+| **Proven Fixed** | Original issue is no longer reproduced and required checks pass |
+| **Fix Failed** | Original issue remains or the fix fails verification |
 
 ---
 
-# Example: From Claim to Proof
+# Example: Claim → Proof
 
 Suppose a pull request adds coupon validation.
 
@@ -386,16 +447,22 @@ The Investigator identifies:
 
 ```text
 coupon.service.ts:84
-```
 
-The validation checks whether the coupon is enabled but does not validate expiration.
+The validation checks whether the coupon is enabled
+but does not validate expiration.
+```
 
 ### 2. Reproduction
 
 ```text
+Input:
 Expired coupon
-Expected: Rejected
-Actual: Accepted
+
+Expected:
+Rejected
+
+Actual:
+Accepted
 
 ❌ BUG REPRODUCED
 ```
@@ -428,13 +495,25 @@ Generated Tests         7/7 ✓
 ✓ PROVEN FIXED
 ```
 
-Instead of receiving only a review comment, the developer receives the **claim, evidence, tests, patch, and verification trail**.
+The developer receives more than a review comment:
+
+```mermaid
+flowchart LR
+    A["Claim"] --> B["Code Evidence"]
+    B --> C["Reproduction"]
+    C --> D["Before-Fix Result"]
+    D --> E["Patch"]
+    E --> F["After-Fix Result"]
+    F --> G["Adversarial Tests"]
+    G --> H["Regression"]
+    H --> I["Proof"]
+```
 
 ---
 
 # Example: Rejecting a False Positive
 
-BobSpot should also be able to prove that a finding is not supported by the repository.
+BobSpot should also be able to demonstrate when an AI finding is **not supported**.
 
 Example:
 
@@ -446,120 +525,110 @@ The Reproducer cannot reproduce the problem.
 
 BobSpot then discovers that authentication middleware guarantees a populated user object for the relevant route.
 
-Generated tests:
-
 ```text
+Generated tests:
 5/5 PASS
-```
 
 Final result:
-
-```text
 ✕ REJECTED
-```
 
 Reason:
-
-```text
 The original finding did not account for
 the authentication middleware contract.
 ```
 
-This prevents the system from treating every AI-generated warning as a real defect.
+This is an important part of the system:
+
+> **BobSpot must be able to say "the evidence does not support this finding."**
 
 ---
 
 # Product Experience
 
-BobSpot is designed as a developer verification workspace rather than a chatbot.
+BobSpot is designed as a **developer verification workspace**, not a chatbot.
 
-## Verification Dashboard
-
-```text
-PR #42 — Add coupon expiration validation
-
-6 files changed
-+143 -27
-
-VERIFICATION: RUNNING
-```
-
-Summary:
+## Dashboard
 
 ```text
-7 Findings
-4 Proven
-2 Rejected
-1 Investigating
-
-55 / 55 Tests Passed
+┌─────────────────────────────────────────────────────────────┐
+│ BobSpot                    shop-api / Pull Request #42       │
+├──────────────┬──────────────────────────────────────────────┤
+│              │                                              │
+│ Overview     │  Pull Request Verification                   │
+│ Findings     │                                              │
+│ Agents       │  ┌──────────┐ ┌──────────┐ ┌──────────┐     │
+│ Tests        │  │ Findings │ │  Proven  │ │ Rejected │     │
+│ Changes      │  │    7     │ │    4     │ │    2     │     │
+│ Proof Trail  │  └──────────┘ └──────────┘ └──────────┘     │
+│ Report       │                                              │
+│              │  Verification Pipeline                       │
+│              │                                              │
+│              │  Context          ✓ Complete                 │
+│              │      ↓                                       │
+│              │  Investigation    ✓ Complete                 │
+│              │      ↓                                       │
+│              │  Reproduction     ● Running                  │
+│              │      ↓                                       │
+│              │  Verification     ○ Waiting                  │
+│              │                                              │
+└──────────────┴──────────────────────────────────────────────┘
 ```
 
----
+> Interface numbers above are illustrative UI examples.
 
 ## Live Agent Activity
 
-The verification pipeline is visible in real time:
-
-```text
-Verification Pipeline
-
-Requirement Agent       ✓ COMPLETE
-        ↓
-Investigator             ✓ COMPLETE
-        ↓
-Reproducer               ✓ COMPLETE
-        ↓
-Fixer                    ✓ COMPLETE
-        ↓
-Adversarial Verifier     ● RUNNING
-        ↓
-Regression Agent         ○ WAITING
-        ↓
-Proof Report             ○ WAITING
+```mermaid
+flowchart TD
+    A["Requirement Agent ✓"] --> B["Investigator ✓"]
+    B --> C["Reproducer ✓"]
+    C --> D["Fixer ✓"]
+    D --> E["Adversarial Verifier ●"]
+    E --> F["Regression Runner ○"]
+    F --> G["Proof Report ○"]
 ```
 
 Developers can inspect the progress of individual agents instead of receiving a black-box final answer.
 
 ---
 
-# Evidence-Backed Findings
+# Evidence-Backed Finding
 
-Each finding provides a complete proof trail.
+A finding can carry its complete proof trail:
 
 ```text
-┌────────────────────────────────────────────┐
-│ HIGH                 PROVEN FIXED          │
-│                                            │
-│ Expired coupons can be accepted            │
-│                                            │
-│ coupon.service.ts : 84                     │
-│                                            │
-│ Reproduced       ✓                         │
-│ Fix applied      ✓                         │
-│ Adversarial      6/6                       │
-│ Regression       47/47                     │
-│                                            │
-│ [ View Proof ] [ View Patch ]              │
-└────────────────────────────────────────────┘
+┌──────────────────────────────────────────────┐
+│ HIGH                     PROVEN FIXED        │
+│                                              │
+│ Expired coupons can be accepted              │
+│                                              │
+│ coupon.service.ts : 84                       │
+│                                              │
+│ Reproduced       ✓                           │
+│ Fix applied      ✓                           │
+│ Adversarial      6/6                         │
+│ Regression       47/47                       │
+│                                              │
+│ [ View Proof ]  [ View Patch ]               │
+└──────────────────────────────────────────────┘
 ```
 
 A finding can contain:
 
-* Claim
-* Code evidence
-* Reproduction test
-* Before-fix result
-* Proposed patch
-* Adversarial tests
-* Regression results
-* Final status
+- Claim
+- Code evidence
+- Reproduction test
+- Before-fix result
+- Proposed patch
+- Adversarial tests
+- Regression results
+- Final status
 
 ---
 
 # Verification Timeline
 
-BobSpot maintains an audit trail of the verification process.
+BobSpot preserves a chronological proof trail.
 
 ```text
 10:41:02  PR analysis started
@@ -581,10 +650,11 @@ This makes the verification process inspectable and auditable.
 
 # Verification Report
 
-At the end of a run, BobSpot generates a consolidated report.
+At the end of a run, BobSpot can produce a consolidated report.
 
 ```text
 BobSpot Verification Report
+────────────────────────────────────
 
 Repository: shop-api
 Pull Request: #42
@@ -603,90 +673,169 @@ Tests Passed             18
 Existing Tests          47/47
 ```
 
-The report contains:
+The report can contain:
 
-* Findings
-* Code evidence
-* Reproduction results
-* Generated patches
-* Adversarial scenarios
-* Regression results
-* Final statuses
-* Verification timeline
+- Findings
+- Code evidence
+- Reproduction results
+- Generated patches
+- Adversarial scenarios
+- Regression results
+- Final statuses
+- Verification timeline
 
 The developer remains in control of the final merge decision.
 
 ---
 
-# Architecture
+# System Architecture
 
-```text
-                         GitHub
-                           │
-                           ▼
-                    BobSpot Backend
-                           │
-                           ▼
-                  Context Collector
-                           │
-                           ▼
-                   Bob Orchestrator
-                           │
-       ┌───────────────────┼───────────────────┐
-       ▼                   ▼                   ▼
- Requirement         Investigator          Reproducer
-    Agent                Agent                 Agent
-       └───────────────────┼───────────────────┘
-                           ▼
-                    Evidence Engine
-                           │
-                           ▼
-                         Fixer
-                           │
-                           ▼
-                 Adversarial Verifier
-                           │
-                           ▼
-                   Regression Runner
-                           │
-                           ▼
-                    Proof Generator
-                           │
-                           ▼
-                       React UI
+```mermaid
+flowchart TB
+    USER["Developer"]
+
+    subgraph UI["BobSpot Web Interface"]
+        DASH["Dashboard"]
+        FIND["Findings"]
+        AGENTS["Agent Activity"]
+        TESTS["Tests"]
+        REPORT["Proof Report"]
+    end
+
+    subgraph BACKEND["BobSpot Backend"]
+        API["FastAPI"]
+        CONTEXT["Context Collector"]
+        ORCH["Verification Orchestrator"]
+        EVIDENCE["Evidence Engine"]
+        RUNNER["Test Runner"]
+        STORE["SQLite"]
+    end
+
+    subgraph BOB["IBM Bob Verification Layer"]
+        REQ["Context Agent"]
+        INV["Investigator"]
+        REP["Reproducer"]
+        FIX["Fixer"]
+        ADV["Adversarial Verifier"]
+        REG["Regression Runner"]
+        PROOF["Proof Generator"]
+    end
+
+    subgraph EXTERNAL["External Systems"]
+        GH["GitHub"]
+        REPO["Git Repository"]
+        SUITE["Existing Test Suite"]
+    end
+
+    USER --> UI
+    UI --> API
+
+    API --> CONTEXT
+    API --> ORCH
+    API --> STORE
+
+    CONTEXT --> GH
+    CONTEXT --> REPO
+
+    ORCH --> REQ
+    REQ --> INV
+    INV --> REP
+    REP --> RUNNER
+
+    RUNNER --> EVIDENCE
+    EVIDENCE --> FIX
+    FIX --> ADV
+    ADV --> REG
+    REG --> RUNNER
+    EVIDENCE --> PROOF
+
+    RUNNER --> SUITE
+    PROOF --> REPORT
 ```
 
 ---
 
-# Tech Stack
+# End-to-End Sequence
 
-### Frontend
+```mermaid
+sequenceDiagram
+    actor Developer
+    participant UI as BobSpot UI
+    participant API as FastAPI
+    participant Bob as IBM Bob Workflow
+    participant Test as Test Runner
+    participant Repo as Repository
 
-* React
-* TypeScript
-* Vite
-* Tailwind CSS
-* shadcn/ui
-* Lucide Icons
-* React Flow
-* Framer Motion
+    Developer->>UI: Start PR verification
+    UI->>API: Submit PR
 
-### Backend
+    API->>Repo: Load diff and context
+    Repo-->>API: PR data
 
-* Python
-* FastAPI
-* Pydantic
-* GitHub API
-* SQLite
-* Subprocess / Test Runner
-* WebSockets / Server-Sent Events
+    API->>Bob: Analyze requirements
+    Bob-->>UI: Context complete
 
-### Agent Layer
+    API->>Bob: Investigate changes
+    Bob-->>UI: Candidate finding
 
-* **IBM Bob**
-* Specialized verification agents
-* Bob Orchestrator
-* Evidence-driven agent workflow
+    API->>Bob: Generate reproduction
+    Bob->>Test: Execute reproduction
+    Test-->>Bob: Result
+
+    alt Finding reproduced
+        Bob-->>UI: Finding proven
+        Bob->>Repo: Generate candidate patch
+        Bob->>Test: Re-test patch
+        Test-->>Bob: Result
+        Bob->>Test: Run adversarial tests
+        Test-->>Bob: Results
+        Bob->>Test: Run regression suite
+        Test-->>Bob: Results
+        Bob-->>UI: Verification result
+    else Finding not reproduced
+        Bob-->>UI: Rejected or unverified
+    end
+
+    UI-->>Developer: Evidence report
+```
+
+---
+
+# Technology Stack
+
+## Frontend
+
+| Technology | Purpose |
+|---|---|
+| **React** | Dashboard UI |
+| **TypeScript** | Type-safe frontend development |
+| **Vite** | Development/build tooling |
+| **Tailwind CSS** | Styling |
+| **shadcn/ui** | UI components |
+| **React Flow** | Workflow visualization |
+| **Framer Motion** | Interface transitions |
+| **Lucide Icons** | UI icons |
+
+## Backend
+
+| Technology | Purpose |
+|---|---|
+| **Python** | Backend/orchestration |
+| **FastAPI** | REST API |
+| **Pydantic** | Validation |
+| **GitHub API** | PR/repository context |
+| **SQLite** | MVP persistence |
+| **Subprocess / Test Runner** | Controlled test execution |
+| **WebSockets / SSE** | Live agent activity |
+
+## Agent Layer
+
+| Technology | Purpose |
+|---|---|
+| **IBM Bob** | Agentic development/workflow capabilities |
+| **Specialized Agents** | Focused verification responsibilities |
+| **Evidence Engine** | Connects findings to executable evidence |
+| **Adversarial Checks** | Challenges generated fixes |
 
 ---
 
@@ -701,6 +850,9 @@ bobspot/
 │   └── ...
 │
 ├── frontend/
+│   ├── public/
+│   │   ├── demo1.png
+│   │   └── demo2.png
 │   ├── src/
 │   │   ├── App.tsx
 │   │   ├── components/
@@ -713,86 +865,6 @@ bobspot/
 ├── README.md
 └── ...
 ```
-
----
-
-# Getting Started
-
-## Prerequisites
-
-* Python 3.10+
-* Node.js 18+
-* npm
-* Git
-* A GitHub repository containing a pull request
-* IBM Bob environment/configuration used by the project
-
-## Clone
-
-```bash
-git clone <your-repository-url>
-cd bobspot
-```
-
-## Start the Backend
-
-```bash
-cd backend
-
-pip install -r requirements.txt
-
-uvicorn main:app --reload --port 8000
-```
-
-Backend:
-
-```text
-http://localhost:8000
-```
-
-Health check:
-
-```text
-http://localhost:8000/api/health
-```
-
-## Start the Frontend
-
-Open another terminal:
-
-```bash
-cd frontend
-
-npm install
-
-npm run dev
-```
-
-Frontend:
-
-```text
-http://localhost:5173
-```
-
----
-
-# Configuration
-
-Create a local `.env` file:
-
-```env
-GITHUB_TOKEN=your_github_token
-GITHUB_API_URL=https://api.github.com
-
-BACKEND_URL=http://localhost:8000
-
-# IBM Bob configuration
-BOB_API_KEY=your_bob_configuration
-```
-
-Never commit API keys, GitHub tokens, or other secrets.
-
-Add `.env` to `.gitignore`.
 
 ---
 
@@ -821,72 +893,206 @@ The verification stream allows the frontend to display agent activity as the wor
 
 ---
 
+# Getting Started
+
+> The commands below describe the current project setup. Adjust paths/configuration if the implementation evolves.
+
+## Prerequisites
+
+- Python 3.10+
+- Node.js 18+
+- npm
+- Git
+- A GitHub repository containing a pull request
+- IBM Bob environment/configuration used by the project
+
+## 1. Clone
+
+```bash
+git clone <your-repository-url>
+cd bobspot
+```
+
+## 2. Start the Backend
+
+```bash
+cd backend
+
+pip install -r requirements.txt
+
+uvicorn main:app --reload --port 8000
+```
+
+Backend:
+
+```text
+http://localhost:8000
+```
+
+Health check:
+
+```text
+http://localhost:8000/api/health
+```
+
+## 3. Start the Frontend
+
+Open another terminal:
+
+```bash
+cd frontend
+
+npm install
+npm run dev
+```
+
+Frontend:
+
+```text
+http://localhost:5173
+```
+
+## 4. Configuration
+
+Create a local `.env` file:
+
+```env
+GITHUB_TOKEN=your_github_token
+GITHUB_API_URL=https://api.github.com
+
+BACKEND_URL=http://localhost:8000
+
+# IBM Bob configuration
+BOB_API_KEY=your_bob_configuration
+```
+
+**Never commit API keys, GitHub tokens, passwords, or other secrets.**
+
+---
+
+# Safety & Execution Boundaries
+
+Generated code and tests must be executed carefully.
+
+The production direction for BobSpot should include:
+
+- Isolated test execution
+- Command allowlists
+- Execution timeouts
+- Restricted filesystem access
+- Secret protection
+- Resource limits
+- Dependency controls
+- Human approval before sensitive actions
+
+For a hackathon MVP, test execution should remain inside a **controlled demo environment**.
+
+> BobSpot is not intended to automatically merge unreviewed changes into production systems.
+
+---
+
 # Scope
 
-BobSpot focuses on demonstrating the **verification workflow** rather than replacing GitHub or enterprise CI/CD systems.
+BobSpot focuses on demonstrating the **verification workflow**, rather than replacing GitHub or enterprise CI/CD systems.
 
-The core workflow covers:
+### Core workflow
 
-* Pull request analysis
-* Requirement understanding
-* Candidate finding generation
-* Evidence collection
-* Reproduction
-* Fix generation
-* Adversarial verification
-* Regression testing
-* Evidence-backed statuses
-* Agent activity
-* Proof reports
+```text
+Pull Request
+     ↓
+Requirements
+     ↓
+Investigation
+     ↓
+Evidence
+     ↓
+Reproduction
+     ↓
+Fix
+     ↓
+Adversarial Verification
+     ↓
+Regression
+     ↓
+Proof
+```
 
 ### Not the goal
 
 BobSpot does not attempt to:
 
-* Replace GitHub or GitLab
-* Replace enterprise CI/CD
-* Analyze every programming language
-* Guarantee correctness of arbitrary programs
-* Automatically merge production pull requests
-* Make final code-ownership decisions
+- Replace GitHub or GitLab
+- Replace enterprise CI/CD
+- Analyze every programming language
+- Guarantee correctness of arbitrary programs
+- Automatically merge production pull requests
+- Make final code-ownership decisions
 
 ---
 
-# What's Different?
+# What Makes BobSpot Different?
 
 ### Traditional AI Review
 
-```text
-Find issue
-    ↓
-Suggest fix
-    ↓
-Trust AI
+```mermaid
+flowchart LR
+    A["Find Issue"] --> B["Suggest Fix"]
+    B --> C["Trust AI"]
 ```
 
 ### BobSpot
 
-```text
-Find issue
-    ↓
-Collect evidence
-    ↓
-Reproduce
-    ↓
-Confirm / Reject
-    ↓
-Fix
-    ↓
-Attack the fix
-    ↓
-Run regression tests
-    ↓
-Generate proof
+```mermaid
+flowchart LR
+    A["Find Issue"]
+    A --> B["Collect Evidence"]
+    B --> C["Reproduce"]
+    C --> D["Confirm / Reject"]
+    D --> E["Fix"]
+    E --> F["Attack the Fix"]
+    F --> G["Regression Tests"]
+    G --> H["Generate Proof"]
 ```
 
-BobSpot is not trying to generate **more review comments**.
+> BobSpot is not trying to generate **more review comments**.
+>
+> It is trying to make important review findings **more trustworthy and reproducible**.
 
-It is trying to make important review findings **more trustworthy and reproducible**.
+---
+
+# Demo Flow
+
+The intended hackathon demonstration can show both sides of verification:
+
+```mermaid
+flowchart TD
+    A["Open Sample PR"]
+    B["Start Verification"]
+    C["Analyze Requirements"]
+    D["Candidate Finding"]
+    E["Generate Reproduction"]
+    F["Bug Reproduced"]
+    G["Generate Fix"]
+    H["Re-test"]
+    I["Challenge Fix"]
+    J["Regression Tests"]
+    K["Proven Fixed"]
+    L["Show Rejected Finding"]
+    M["Final Proof Report"]
+
+    A --> B --> C --> D --> E --> F
+    F --> G --> H --> I --> J --> K --> L --> M
+```
+
+Two findings can demonstrate two outcomes:
+
+```text
+Finding A
+AI Claim → Reproduced → Fixed → Verified → PROVEN FIXED
+
+Finding B
+AI Claim → Tested → Contradicted → REJECTED
+```
 
 ---
 
@@ -894,46 +1100,134 @@ It is trying to make important review findings **more trustworthy and reproducib
 
 Potential extensions include:
 
-* Native GitHub PR integration
-* Evidence-backed PR review comments
-* More programming languages
-* Deeper security verification
-* CI/CD integration
-* Persistent verification history
-* Repository-specific verification policies
-* Organization-level verification agents
-* Human approval gates
-* Verification analytics
+- Native GitHub App integration
+- Evidence-backed PR review comments
+- More programming languages
+- Deeper security verification
+- CI/CD integration
+- Persistent verification history
+- Repository-specific verification policies
+- Organization-level verification agents
+- Human approval gates
+- Verification analytics
+
+These are future possibilities, not current guarantees.
 
 ---
 
-# The Core Idea
+# Design Principles
 
-AI is becoming increasingly capable of writing and reviewing software.
+### 1. Evidence before confidence
 
-The next challenge is determining **which AI claims deserve to be trusted**.
+Prefer observable execution results over unsupported confidence scores.
 
-BobSpot explores a simple idea:
+### 2. Reproduce before fixing
 
-> **An AI-generated review should not stop at a claim. It should produce evidence.**
+Whenever practical, establish the failure before generating a patch.
+
+### 3. Verify the verifier
+
+Challenge generated fixes instead of assuming they are correct.
+
+### 4. Preserve human visibility
+
+Developers should be able to inspect claims, tests, code evidence, patches, and results.
+
+### 5. Reject unsupported findings
+
+The system must be capable of concluding that an original suspicion was not supported.
+
+### 6. Keep the MVP focused
+
+The hackathon goal is not to build another GitHub.
+
+The goal is to demonstrate:
 
 ```text
-CLAIM
-  ↓
-EVIDENCE
-  ↓
-REPRODUCTION
-  ↓
-FIX
-  ↓
-ADVERSARIAL VERIFICATION
-  ↓
-REGRESSION
-  ↓
-PROOF
+Claim → Evidence → Reproduction → Fix → Challenge → Regression → Proof
 ```
 
-## **BobSpot**
+---
 
-### **Don't just review AI-generated code. Prove the review.**
+# Contributing
 
+Contributions, bug reports, documentation improvements, and design suggestions are welcome.
+
+## Contribution Flow
+
+```bash
+git checkout -b feature/your-feature
+```
+
+Make your changes and run relevant checks:
+
+```bash
+pytest
+```
+
+```bash
+npm run lint
+npm run build
+```
+
+Commit:
+
+```bash
+git commit -m "feat: describe your change"
+```
+
+Push:
+
+```bash
+git push origin feature/your-feature
+```
+
+Then open a Pull Request explaining:
+
+- What changed
+- Why it changed
+- How you tested it
+
+Please keep pull requests focused and avoid unrelated refactoring.
+
+---
+
+# Reporting Issues
+
+When reporting a bug, include where possible:
+
+```text
+Environment:
+Operating System:
+Frontend/Backend:
+Repository language:
+PR being analyzed:
+
+Expected behavior:
+
+Actual behavior:
+
+Steps to reproduce:
+
+Relevant logs:
+```
+
+**Never include API keys, access tokens, passwords, or other secrets in an issue.**
+
+---
+
+<div align="center">
+
+# BobSpot
+
+### **Don't just review the code. Prove the review.**
+
+<br/>
+
+**Claim → Evidence → Reproduction → Fix → Challenge → Regression → Proof**
+
+<br/>
+
+Built with **IBM Bob** for the **IBM Bob 2.0 Hackathon**.
+
+</div>
