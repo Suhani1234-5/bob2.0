@@ -1,10 +1,18 @@
+import sys
+from pathlib import Path
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from database import init_db
-from routers.verify import router as verify_router
+# Force the backend directory into Python's module lookup path
+BACKEND_DIR = Path(__file__).resolve().parent
+if str(BACKEND_DIR) not in sys.path:
+    sys.path.insert(0, str(BACKEND_DIR))
+
+from app.core.database import init_db
+from app.api.endpoints.verification import router as verify_router
+from app.api.endpoints.pr import router as pr_router
 from routers.debug import router as debug_router
 from routers.fix_verify import router as fix_verify_router
 
@@ -15,18 +23,28 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="ProofPR Backend", version="0.1.0", lifespan=lifespan)
+app = FastAPI(
+    title="ProofPR Backend",
+    version="0.1.0",
+    lifespan=lifespan,
+)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "*",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# Routers
 app.include_router(verify_router)
 app.include_router(debug_router)
+app.include_router(pr_router, prefix="/api")
 app.include_router(fix_verify_router)
 
 
