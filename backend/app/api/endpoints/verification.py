@@ -12,11 +12,14 @@ from __future__ import annotations
 from dataclasses import asdict
 from datetime import datetime, timezone
 
+from fastapi import WebSocket, WebSocketDisconnect
+from app.services.stream_manager import stream_manager
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-from database import get_connection, init_db
-from github_client import fetch_pr_context, GitHubError
+from app.core.database import get_connection, init_db
+from app.services.github_service import GitHubService, fetch_pr_context, GitHubError
 
 router = APIRouter()
 
@@ -163,3 +166,15 @@ def verify(body: VerifyRequest) -> VerifyResponse:
         diff=ctx.diff,
         linked_issues=[LinkedIssueOut(**asdict(i)) for i in ctx.linked_issues],
     )
+
+@router.websocket("/verification/{pr_id}/stream")
+async def websocket_verification_stream(websocket: WebSocket, pr_id: int):
+    """
+    WebSocket endpoint for real-time live streaming of Bob agent executions and proof results.
+    """
+    await stream_manager.connect(pr_id, websocket)
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        stream_manager.disconnect(pr_id, websocket)

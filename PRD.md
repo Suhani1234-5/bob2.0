@@ -1,4 +1,4 @@
-ProofPR
+BobSpot
 
 Evidence-Backed Multi-Agent PR Verification powered by IBM Bob
 
@@ -83,7 +83,7 @@ It is:
 
 “Can AI prove that its review findings are correct?”
 
-ProofPR is designed around that question.
+BobSpot is designed around that question.
 
 ---
 
@@ -120,7 +120,7 @@ Multiple agents can still repeat the same incorrect assumption.
 
 4. Proposed Solution
 
-ProofPR adds an experimental verification layer.
+BobSpot adds an experimental verification layer.
 
 Pull Request
       ↓
@@ -192,7 +192,7 @@ Needs:
 
 6. Product Goals
 
-ProofPR should:
+BobSpot should:
 
 1. Detect potential PR defects.
 2. Connect findings to concrete code evidence.
@@ -246,7 +246,7 @@ PROOF
 
 9. Agent Architecture
 
-ProofPR uses multiple specialized IBM Bob agents.
+BobSpot uses multiple specialized IBM Bob agents.
 
 Agent 1 — Context / Requirement Agent
 
@@ -512,7 +512,7 @@ Requirement document
 
 Step 2 — Repository Analysis
 
-ProofPR loads:
+BobSpot loads:
 
 - PR metadata
 - changed files

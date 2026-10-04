@@ -148,3 +148,17 @@ class AgentExecution(BaseModel):
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
     summary: Optional[str] = None
+
+class VerifyRequest(BaseModel):
+    repo_url: str
+    pr_number: int
+    issue_url: Optional[str] = None
+    custom_requirements: Optional[str] = None
+
+class FindingDetail(Finding):
+    evidence: list[Evidence] = []
+    tests: list[TestExecution] = []
+    patch: Optional[Patch] = None
+
+class PullRequestDetail(PullRequest):
+    findings: list[FindingDetail] = []

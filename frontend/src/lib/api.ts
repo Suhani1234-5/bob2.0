@@ -24,3 +24,8 @@ export async function getFindingPatch(findingId: string) {
   const res = await fetch(`${API_BASE}/api/findings/${findingId}/patch`)
   return res.json()
 }
+
+export async function getFindingEvidence(findingId: string) {
+  const res = await fetch(`${API_BASE}/api/findings/${findingId}/evidence`);
+  return res.json();
+}
