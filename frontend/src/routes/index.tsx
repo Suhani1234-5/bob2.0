@@ -3,7 +3,8 @@ import { ArrowRight, Check, CheckCircle2, CircleDot, Clock3, Code2, FileDiff, Gi
 import { PageHeading, SectionHeading } from "@/components/app-shell";
 import { ButtonLink } from "@/components/button";
 import { SeverityBadge, StatusBadge } from "@/components/status-badge";
-import { findings } from "@/lib/proof-data";
+import { useEffect, useState } from "react";
+import { getPR, getFindings } from "@/lib/api";
 
 export const Route = createFileRoute("/")({
   head: () => ({ meta: [
