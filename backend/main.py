@@ -1,6 +1,7 @@
 import sys
 from pathlib import Path
 from contextlib import asynccontextmanager
+from routers.stream import router as stream_router
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -46,6 +47,7 @@ app.include_router(verify_router)
 app.include_router(debug_router)
 app.include_router(pr_router, prefix="/api")
 app.include_router(fix_verify_router)
+app.include_router(stream_router)
 
 
 @app.get("/api/health")

@@ -103,5 +103,6 @@ function FindingsPage() {
         </article>
       ))}
     </div>
-  </>;
+  </>
 }
+
