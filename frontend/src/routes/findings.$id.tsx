@@ -278,6 +278,43 @@ function FixFailedBanner({ failingChecks }: { failingChecks?: string[] }) {
 function FindingDetail() {
   const finding = Route.useLoaderData();
   const [tests, setTests] = useState<AdversarialTest[]>(finding.adversarial_tests);
+  const [reason, setReason] = useState(finding.reason ?? "");
+  type RegressionRow = { suite: "unit" | "integration" | "proof"; passed: number; total: number };
+  const [regressionRows, setRegressionRows] = useState<RegressionRow[]>([
+    { suite: "unit", passed: finding.regression.unit[0], total: finding.regression.unit[1] },
+    { suite: "integration", passed: finding.regression.integration[0], total: finding.regression.integration[1] },
+    { suite: "proof", passed: finding.regression.proof[0], total: finding.regression.proof[1] },
+  ]);
+
+  useEffect(() => {
+    // Demo fixture IDs (FND-001) correspond to seeded database IDs (1).
+    const backendFindingId = Number(finding.id.replace(/^FND-/, ""));
+    if (!Number.isInteger(backendFindingId)) return;
+    const apiBase = (import.meta.env.VITE_API_URL || "http://localhost:8000").replace(/\/$/, "");
+    fetch(`${apiBase}/api/findings/${backendFindingId}`)
+      .then((response) => response.ok ? response.json() : Promise.reject(new Error("Finding details unavailable")))
+      .then((data: { title?: string; reason?: string | null }) => {
+        // Fixture and database IDs only line up for matching demo findings.
+        if (data.title === finding.title && data.reason?.trim()) setReason(data.reason);
+      })
+      .catch(() => {
+        // Keep the static demo explanation when the API is unavailable.
+      });
+    fetch(`${apiBase}/api/findings/${backendFindingId}/regression`)
+      .then((response) => response.ok ? response.json() : Promise.reject(new Error("Regression results unavailable")))
+      .then((rows: RegressionRow[]) => {
+        if (Array.isArray(rows) && rows.length) setRegressionRows(rows);
+      })
+      .catch(() => {
+        // Keep the static demo values when the API is not running.
+      });
+  }, [finding.id, finding.regression, finding.reason, finding.title]);
+
+  const displayedRegressionRows = regressionRows.filter((row) => row.suite !== "proof");
+  const regressionTotal = displayedRegressionRows.reduce((sum, row) => ({
+    passed: sum.passed + row.passed,
+    total: sum.total + row.total,
+  }), { passed: 0, total: 0 });
 
   const isRejected   = finding.status === "REJECTED";
   const isUnverified = finding.status === "UNVERIFIED";
@@ -483,12 +520,19 @@ function FindingDetail() {
                     </tr>
                   </thead>
                   <tbody>
-                    {([ ["Unit Tests", finding.regression.unit], ["Integration Tests", finding.regression.integration], ["Proof Tests", finding.regression.proof], ["Total", finding.regression.total] ] as const).map(([label, count]) => {
-                      const allPass = count[0] === count[1];
+                    {[
+                      ...displayedRegressionRows.map((row) => ({
+                        label: row.suite === "unit" ? "Unit Tests" : row.suite === "integration" ? "Integration Tests" : "Proof Tests",
+                        passed: row.passed,
+                        total: row.total,
+                      })),
+                      { label: "Total", passed: regressionTotal.passed, total: regressionTotal.total },
+                    ].map(({ label, passed, total }) => {
+                      const allPass = passed === total;
                       return (
                         <tr key={label} className={cn("border-b border-border last:border-b-0", label === "Total" && "bg-soft font-semibold")}>
                           <td className="px-5 py-3.5">{label}</td>
-                          <td className={cn("px-5 py-3.5 text-right font-mono", !allPass && "text-danger")}>{count[0]}/{count[1]}</td>
+                          <td className={cn("px-5 py-3.5 text-right font-mono", !allPass && "text-danger")}>{passed}/{total}</td>
                           <td className="hidden px-5 py-3.5 text-right sm:table-cell">
                             <span className={cn("inline-flex items-center gap-1", allPass ? "text-success" : "text-danger")}>
                               {allPass ? <Check size={12}/> : <X size={12}/>}{allPass ? "Passed" : "Failed"}
@@ -508,7 +552,7 @@ function FindingDetail() {
                 Final proof status
               </div>
               <StatusBadge status={finding.final_status} large/>
-              <p className="mx-auto mt-4 max-w-md text-xs leading-6 text-muted-foreground">{finding.reason}</p>
+              <p className="mx-auto mt-4 max-w-md text-xs leading-6 text-muted-foreground">{reason}</p>
             </section>
 
             {/* Add test case */}
@@ -527,7 +571,7 @@ function FindingDetail() {
                   ["Reproduction", isRejected ? "Claim not reproduced" : isUnverified ? "Pending result" : "Bug reproduced", !isUnverified],
                   ["Proposed fix", finding.patch_diff.length ? isFixFailed ? "Patch verification failed" : "Patch applied" : "No patch", finding.patch_diff.length > 0 && !isFixFailed],
                   ["Adversarial",  `${passed}/${tests.length} checks passed`,                  passed === tests.length],
-                  ["Regression",   "Test suites checked",                                      finding.regression.total[0] === finding.regression.total[1]],
+                  ["Regression",   "Test suites checked",                                      regressionTotal.passed === regressionTotal.total],
                 ].map(([name, detail, done], index) => (
                   <div key={String(name)} className="flex gap-3">
                     <div className="flex flex-col items-center">

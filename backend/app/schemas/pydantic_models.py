@@ -94,6 +94,12 @@ class PullRequest(BaseModel):
     branch: str
     base_branch: str
     status: PRStatus = PRStatus.PENDING
+    additions: int = 0
+    deletions: int = 0
+    changed_files_count: int = 0
+    tests_passed: int = 0
+    tests_total: int = 0
+    confidence: float = 0.0
     created_at: datetime
 
 
@@ -108,6 +114,7 @@ class Finding(BaseModel):
     claim: str
     status: FindingStatus = FindingStatus.CANDIDATE
     created_by_agent: str
+    reason: Optional[str] = None
 
 
 class Evidence(BaseModel):

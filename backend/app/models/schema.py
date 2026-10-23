@@ -41,6 +41,9 @@ class PullRequest(Base):
     branch: Mapped[str] = mapped_column(String(255))
     base_branch: Mapped[str] = mapped_column(String(255))
     status: Mapped[str] = mapped_column(String(50), default="pending")
+    additions: Mapped[int] = mapped_column(Integer, default=0)
+    deletions: Mapped[int] = mapped_column(Integer, default=0)
+    changed_files_count: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     findings: Mapped[List["Finding"]] = relationship("Finding", back_populates="pr", cascade="all, delete-orphan")
@@ -59,6 +62,7 @@ class Finding(Base):
     claim: Mapped[str] = mapped_column(Text)
     status: Mapped[FindingStatus] = mapped_column(SQLEnum(FindingStatus), default=FindingStatus.CANDIDATE, index=True)
     created_by_agent: Mapped[str] = mapped_column(String(100))
+    reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     pr: Mapped["PullRequest"] = relationship("PullRequest", back_populates="findings")
     evidences: Mapped[List["Evidence"]] = relationship("Evidence", back_populates="finding", cascade="all, delete-orphan")

@@ -163,6 +163,7 @@ class FindingOut(BaseModel):
     claim: str
     status: str
     created_by_agent: str
+    reason: str | None = None
 
 
 class InvestigateResponse(BaseModel):
@@ -256,6 +257,7 @@ def debug_investigate(
             claim=row["claim"],
             status=row["status"],
             created_by_agent=row["created_by_agent"],
+            reason=row["reason"],
         )
         for row in rows
     ]
@@ -377,7 +379,16 @@ def debug_reproduce(
         "unverified":       "unverified",
     }
     new_db_status = db_status_map.get(result.finding_status, "unverified")
-    update_finding_status(finding_id, new_db_status)
+    actual_result = (result.actual_result or "").strip()
+    if new_db_status == "proven":
+        reason = f"The reproduction test failed as expected, confirming the reported issue: {actual_result or 'the claimed behavior was observed'}"
+    elif new_db_status == "rejected":
+        reason = "The reproduction test passed, so the reported issue could not be reproduced."
+    else:
+        reason = f"The reproduction run was inconclusive: {actual_result or 'the test did not produce a conclusive result'}"
+    if not reason.endswith((".", "!", "?")):
+        reason += "."
+    update_finding_status(finding_id, new_db_status, reason=reason)
 
     # 6. Insert test execution row
     insert_test_execution(

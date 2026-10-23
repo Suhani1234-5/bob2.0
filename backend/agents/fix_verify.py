@@ -116,7 +116,7 @@ class _Reporter:
         self._emit({"type": "agent_update", "agent": agent, "status": status, "message": message})
 
     def status(self, status: str, message: str) -> None:
-        db.update_finding_status(self.finding_id, status, db_path=self.db_path)
+        db.update_finding_status(self.finding_id, status, db_path=self.db_path, reason=message)
         self._emit({"type": "finding_status", "status": status, "message": message})
 
 
@@ -260,6 +260,12 @@ def _save_tests(finding_id: int, db_path: Path, repro: SuiteRun | None, repro_fi
                    "Behaviour required by the finding holds", c.message or "Passed", c.status, c.duration)
     if regression is not None:
         p = regression.patched
+        db.insert_regression_result(finding_id, "unit", regression.unit["passed"], regression.unit["total"], db_path)
+        db.insert_regression_result(finding_id, "integration", regression.integration["passed"], regression.integration["total"], db_path)
+        if repro is not None:
+            db.insert_regression_result(
+                finding_id, "proof", repro.passed, len(repro.cases), db_path
+            )
         broken = {_category(tid.split("::")[0]) for tid in regression.newly_failing}
         for cat in ("unit", "integration"):
             t = getattr(regression, cat)

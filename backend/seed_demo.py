@@ -21,6 +21,9 @@ def seed():
         branch="feature/coupon-expiry",
         base_branch="main",
         status="completed",
+        additions=143,
+        deletions=27,
+        changed_files_count=6,
     )
     print(f"Created PR record id: {pr_id}")
 
@@ -35,10 +38,20 @@ def seed():
                 "file": "src/services/coupon.service.ts",
                 "line": 84,
                 "claim": "The coupon validation path checks whether the coupon is enabled but does not reject an expired coupon.",
+                "reason": "The expired coupon was reproduced, then the fix passed adversarial and regression checks.",
             })()
         ],
     )[0]
-    db.update_finding_status(f1_id, "proven_fixed")
+    db.update_finding_status(
+        f1_id,
+        "proven_fixed",
+        reason="The expired coupon was reproduced, then the fix passed adversarial and regression checks.",
+    )
+
+    # Regression suite totals for Finding #03
+    db.insert_regression_result(f1_id, "unit", 34, 34)
+    db.insert_regression_result(f1_id, "integration", 13, 13)
+    db.insert_regression_result(f1_id, "proof", 7, 7)
 
     # Add Evidence for Finding #03
     db.insert_evidence(
@@ -96,10 +109,15 @@ def seed():
                 "file": "src/services/user.service.ts",
                 "line": 42,
                 "claim": "User object can be null when accessing user.id.",
+                "reason": "Rejected: auth middleware already guarantees a non-null user.",
             })()
         ],
     )[0]
-    db.update_finding_status(f2_id, "rejected")
+    db.update_finding_status(
+        f2_id,
+        "rejected",
+        reason="Rejected: auth middleware already guarantees a non-null user.",
+    )
 
     db.insert_evidence(
         finding_id=f2_id,
