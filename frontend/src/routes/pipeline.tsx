@@ -3,24 +3,24 @@ import { useState } from 'react'
 import {
   Activity, ArrowRight, ArrowUpRight, BookOpenCheck, Check, CheckCircle2,
   ChevronDown, Circle, Clock3, Code2, FileCode2, LoaderCircle,
-  MoreHorizontal, Search, Shield, Sparkles, Terminal, ListChecks,
+  MoreHorizontal, Search, Shield, Sparkles, Terminal, ListChecks, Wrench
 } from 'lucide-react'
+import { useVerificationStream } from '@/lib/useVerificationstream'
 
 export const Route = createFileRoute('/pipeline')({ component: Pipeline })
 
-const stages = [
-  { title: 'Requirements', icon: BookOpenCheck, state: 'complete', agent: 'Context agent', detail: 'Acceptance criteria extracted from PR description and issue #31.' },
-  { title: 'Investigation', icon: Search, state: 'complete', agent: 'Investigator', detail: '3 candidate claims linked to changed code.' },
-  { title: 'Reproduction', icon: Terminal, state: 'running', agent: 'Reproducer', detail: 'Executing generated coupon expiry scenarios…' },
-  { title: 'Fix review', icon: Shield, state: 'queued', agent: 'Adversarial verifier', detail: 'Waiting for reproduction evidence.' },
-  { title: 'Regression', icon: ListChecks, state: 'queued', agent: 'Regression agent', detail: '47 existing tests queued.' },
+// CHANGED: removed "state" from here. State now comes live from the websocket.
+// ADDED: "key" = the agent name the backend sends.
+const stageDefs = [
+  { key: 'requirement',  title: 'Requirements',  icon: BookOpenCheck, agent: 'Context agent',        detail: 'Acceptance criteria extracted from PR description and issue.' },
+  { key: 'investigator', title: 'Investigation', icon: Search,        agent: 'Investigator',         detail: 'Candidate claims linked to changed code.' },
+  { key: 'reproducer',   title: 'Reproduction',  icon: Terminal,      agent: 'Reproducer',           detail: 'Executing generated test scenarios…' },
+  { key: 'fixer',        title: 'Fix generation',icon: Wrench,        agent: 'Fixer',                detail: 'Writing a minimal patch for confirmed bugs.' },
+  { key: 'adversarial',  title: 'Fix review',    icon: Shield,        agent: 'Adversarial verifier', detail: 'Trying to break the proposed fix.' },
+  { key: 'regression',   title: 'Regression',    icon: ListChecks,    agent: 'Regression agent',     detail: 'Running the existing test suite.' },
 ]
 
-const activity = [
-  { time: '14:54:38', icon: Check, color: 'green', text: 'Requirements mapped', meta: 'Context agent · 4 acceptance criteria' },
-  { time: '14:54:35', icon: Check, color: 'green', text: '3 candidate findings identified', meta: 'Investigator · 6 files inspected' },
-  { time: '14:54:31', icon: LoaderCircle, color: 'violet', text: 'Running reproduction tests', meta: 'Reproducer · coupon expiry scenarios', live: true },
-]
+// CHANGED: activity list is gone. It is now built from live "events" below.
 
 const tests = [
   { name: 'expired_coupon_rejected', type: 'Reproduction', state: 'running', duration: '—' },
@@ -43,7 +43,20 @@ function StatusPill({ state }: { state: string }) {
 export default function Pipeline() {
   const [selectedStage, setSelectedStage] = useState(2)
   const [showFiles, setShowFiles] = useState(false)
+
+  // ADDED: live connection to the backend
+  const { events, agentStatus } = useVerificationStream('3')
+
+  // ADDED: build stages with live state (falls back to "queued")
+  const stages = stageDefs.map((s) => ({ ...s, state: agentStatus[s.key] ?? 'queued' }))
   const active = stages[selectedStage] ?? stages[0]!
+
+  // ADDED: overall status for the header badge
+  const anyRunning = stages.some((s) => s.state === 'running')
+  const allDone = stages.every((s) => s.state === 'complete')
+
+  // ADDED: newest event first
+  const liveActivity = [...events].reverse().slice(0, 8)
 
   return (
     <div className="workspace">
@@ -54,7 +67,7 @@ export default function Pipeline() {
           <p>Live agent activity for this verification run.</p>
         </div>
         <div className="heading-actions">
-          <span className="run-badge"><span className="live-dot" /> Verification running</span>
+          <span className="run-badge"><span className="live-dot" /> {allDone ? 'Verification complete' : anyRunning ? 'Verification running' : 'Waiting for run'}</span>
           <button className="more-action"><MoreHorizontal size={17} /></button>
         </div>
       </section>
@@ -65,7 +78,7 @@ export default function Pipeline() {
             <div className="panel-title">
               <span className="section-glyph"><Activity size={15} /></span>
               Verification pipeline
-              <span className="run-badge compact"><span className="live-dot" />RUNNING</span>
+              <span className="run-badge compact"><span className="live-dot" />{allDone ? 'DONE' : anyRunning ? 'RUNNING' : 'IDLE'}</span>
             </div>
             <p className="panel-subtitle">Agents work in sequence, with independent evidence at each stage.</p>
           </div>
@@ -119,15 +132,19 @@ export default function Pipeline() {
             <button className="icon-button small-icon" aria-label="Activity options"><MoreHorizontal size={17} /></button>
           </div>
           <div className="activity-list">
-            {activity.map((item) => {
-              const Icon = item.icon
+            {liveActivity.length === 0 && (
+              <div className="activity-copy"><small>No events yet. Start a run to see live updates.</small></div>
+            )}
+            {liveActivity.map((item, i) => {
+              const running = item.status === 'running'
+              const Icon = running ? LoaderCircle : Check
               return (
-                <div className="activity-item" key={item.time}>
+                <div className="activity-item" key={i}>
                   <time>{item.time}</time>
-                  <div className={`activity-icon ${item.color}`}><Icon size={13} className={item.live ? 'spin' : ''} /></div>
+                  <div className={`activity-icon ${running ? 'violet' : 'green'}`}><Icon size={13} className={running ? 'spin' : ''} /></div>
                   <div className="activity-copy">
-                    <b>{item.text}{item.live && <span className="now-label">NOW</span>}</b>
-                    <small>{item.meta}</small>
+                    <b>{item.agent} {running ? 'started' : 'finished'}{i === 0 && running && <span className="now-label">NOW</span>}</b>
+                    <small>{item.message ?? `Status: ${item.status}`}</small>
                   </div>
                 </div>
               )
