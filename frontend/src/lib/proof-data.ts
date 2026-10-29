@@ -14,7 +14,7 @@ export type Finding = {
   actual: string;
   before_fix_result: string;
   code_evidence: { line: number; code: string; flagged?: boolean }[];
-  full_file_content?: { line: number; code: string }[];
+  full_file_content?: { line: number; code: string; flagged?: boolean }[];
   patch_diff: { type: "context" | "removed" | "added"; code: string; oldLine?: number; newLine?: number }[];
   adversarial_tests: { name: string; passed: boolean }[];
   regression: { unit: [number, number]; integration: [number, number]; proof: [number, number]; total: [number, number] };

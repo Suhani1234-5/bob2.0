@@ -46,6 +46,9 @@ CREATE TABLE IF NOT EXISTS pull_requests (
     branch      TEXT    NOT NULL,
     base_branch TEXT    NOT NULL,
     status      TEXT    NOT NULL DEFAULT 'pending',
+    additions   INTEGER NOT NULL DEFAULT 0,
+    deletions   INTEGER NOT NULL DEFAULT 0,
+    changed_files_count INTEGER NOT NULL DEFAULT 0,
     created_at  TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
 );
 
@@ -62,7 +65,8 @@ CREATE TABLE IF NOT EXISTS findings (
     line              INTEGER,
     claim             TEXT    NOT NULL,
     status            TEXT    NOT NULL DEFAULT 'candidate',
-    created_by_agent  TEXT    NOT NULL
+    created_by_agent  TEXT    NOT NULL,
+    reason            TEXT
 );
 
 -- -------------------------------------------------------------------------
@@ -91,6 +95,18 @@ CREATE TABLE IF NOT EXISTS test_executions (
     actual_result   TEXT,
     status          TEXT    NOT NULL DEFAULT 'pending',
     execution_time  REAL
+);
+
+-- -------------------------------------------------------------------------
+-- regression_results
+-- -------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS regression_results (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    finding_id  INTEGER NOT NULL REFERENCES findings(id) ON DELETE CASCADE,
+    suite       TEXT    NOT NULL CHECK (suite IN ('unit', 'integration', 'proof')),
+    passed      INTEGER NOT NULL CHECK (passed >= 0),
+    total       INTEGER NOT NULL CHECK (total >= 0 AND passed <= total),
+    UNIQUE (finding_id, suite)
 );
 
 -- -------------------------------------------------------------------------
@@ -134,6 +150,13 @@ def init_db(db_path: Path = DB_PATH) -> None:
     """Create all tables if they do not already exist."""
     with get_connection(db_path) as conn:
         conn.executescript(_SCHEMA_SQL)
+        pr_columns = {row["name"] for row in conn.execute("PRAGMA table_info(pull_requests)")}
+        for column in ("additions", "deletions", "changed_files_count"):
+            if column not in pr_columns:
+                conn.execute(f"ALTER TABLE pull_requests ADD COLUMN {column} INTEGER NOT NULL DEFAULT 0")
+        finding_columns = {row["name"] for row in conn.execute("PRAGMA table_info(findings)")}
+        if "reason" not in finding_columns:
+            conn.execute("ALTER TABLE findings ADD COLUMN reason TEXT")
 
 
 def insert_findings(
@@ -156,8 +179,8 @@ def insert_findings(
                 """
                 INSERT INTO findings
                     (pr_id, title, description, severity, file, line,
-                     claim, status, created_by_agent)
-                VALUES (?, ?, ?, ?, ?, ?, ?, 'candidate', 'investigator')
+                     claim, status, created_by_agent, reason)
+                VALUES (?, ?, ?, ?, ?, ?, ?, 'candidate', 'investigator', ?)
                 """,
                 (
                     pr_id,
@@ -167,6 +190,7 @@ def insert_findings(
                     f.file,
                     f.line,
                     f.claim,
+                    getattr(f, "reason", None),
                 ),
             )
             row_ids.append(cur.lastrowid)
@@ -191,6 +215,50 @@ def get_pr_by_id(pr_id: int, db_path: Path = DB_PATH) -> sqlite3.Row | None:
         ).fetchone()
 
 
+def get_pr_test_metrics(pr_id: int, db_path: Path = DB_PATH) -> dict[str, int | float]:
+    """Compute non-duplicated PR test counts and the resulting pass percentage."""
+    with get_connection(db_path) as conn:
+        execution_counts = conn.execute(
+            """SELECT
+                   COALESCE(SUM(CASE WHEN te.status = 'pass' THEN 1 ELSE 0 END), 0) AS passed,
+                   COUNT(*) AS total
+               FROM test_executions te
+               JOIN findings f ON f.id = te.finding_id
+               WHERE f.pr_id = ?
+                 AND te.test_type NOT IN ('regression', 'reproduction')
+                 AND (te.test_type != 'proof' OR NOT EXISTS (
+                     SELECT 1 FROM regression_results rr
+                     WHERE rr.finding_id = f.id AND rr.suite = 'proof'
+                 ))""",
+            (pr_id,),
+        ).fetchone()
+        fallback_reproductions = conn.execute(
+            """SELECT
+                   COALESCE(SUM(CASE WHEN te.status = 'pass' THEN 1 ELSE 0 END), 0) AS passed,
+                   COUNT(*) AS total
+               FROM test_executions te
+               JOIN findings f ON f.id = te.finding_id
+               WHERE f.pr_id = ? AND te.test_type = 'reproduction'
+                 AND NOT EXISTS (
+                     SELECT 1 FROM regression_results rr
+                     WHERE rr.finding_id = f.id AND rr.suite = 'proof'
+                 )""",
+            (pr_id,),
+        ).fetchone()
+        regression_counts = conn.execute(
+            """SELECT COALESCE(SUM(rr.passed), 0) AS passed, COALESCE(SUM(rr.total), 0) AS total
+               FROM regression_results rr
+               JOIN findings f ON f.id = rr.finding_id
+               WHERE f.pr_id = ?""",
+            (pr_id,),
+        ).fetchone()
+
+    passed = execution_counts["passed"] + fallback_reproductions["passed"] + regression_counts["passed"]
+    total = execution_counts["total"] + fallback_reproductions["total"] + regression_counts["total"]
+    confidence = round((passed / total) * 100, 1) if total else 0.0
+    return {"tests_passed": passed, "tests_total": total, "confidence": confidence}
+
+
 def get_finding_by_id(finding_id: int, db_path: Path = DB_PATH) -> sqlite3.Row | None:
     """Return the findings row for the given id, or None."""
     with get_connection(db_path) as conn:
@@ -204,12 +272,13 @@ def update_finding_status(
     finding_id: int,
     status: str,
     db_path: Path = DB_PATH,
+    reason: str | None = None,
 ) -> None:
-    """Update the status column of a single finding row."""
+    """Update a finding's status and, when supplied, its explanatory reason."""
     with get_connection(db_path) as conn:
         conn.execute(
-            "UPDATE findings SET status = ? WHERE id = ?",
-            (status, finding_id),
+            "UPDATE findings SET status = ?, reason = COALESCE(?, reason) WHERE id = ?",
+            (status, reason, finding_id),
         )
 
 
@@ -257,21 +326,27 @@ def insert_pull_request(
     base_branch: str,
     status: str = "pending",
     db_path: Path = DB_PATH,
+    additions: int = 0,
+    deletions: int = 0,
+    changed_files_count: int = 0,
 ) -> int:
     with get_connection(db_path) as conn:
         cur = conn.execute(
             """
-            INSERT INTO pull_requests (repository, pr_number, title, description, branch, base_branch, status)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO pull_requests
+                (repository, pr_number, title, description, branch, base_branch, status,
+                 additions, deletions, changed_files_count)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (repository, pr_number, title, description, branch, base_branch, status),
+            (repository, pr_number, title, description, branch, base_branch, status,
+             additions, deletions, changed_files_count),
         )
         return cur.lastrowid
 
 def get_pr_by_repo_and_number(repository: str, pr_number: int, db_path: Path = DB_PATH) -> sqlite3.Row | None:
     with get_connection(db_path) as conn:
         return conn.execute(
-            "SELECT * FROM pull_requests WHERE repository = ? AND pr_number = ?",
+            "SELECT * FROM pull_requests WHERE repository = ? AND pr_number = ? ORDER BY id DESC LIMIT 1",
             (repository, pr_number),
         ).fetchone()
 
@@ -305,6 +380,36 @@ def get_evidence_for_finding(finding_id: int, db_path: Path = DB_PATH) -> list[s
 def get_tests_for_finding(finding_id: int, db_path: Path = DB_PATH) -> list[sqlite3.Row]:
     with get_connection(db_path) as conn:
         return conn.execute("SELECT * FROM test_executions WHERE finding_id = ? ORDER BY id", (finding_id,)).fetchall()
+
+def insert_regression_result(
+    finding_id: int,
+    suite: str,
+    passed: int,
+    total: int,
+    db_path: Path = DB_PATH,
+) -> int:
+    """Insert or update a suite's regression counts for a finding."""
+    with get_connection(db_path) as conn:
+        conn.execute(
+            """INSERT INTO regression_results (finding_id, suite, passed, total)
+               VALUES (?, ?, ?, ?)
+               ON CONFLICT(finding_id, suite) DO UPDATE SET passed = excluded.passed, total = excluded.total""",
+            (finding_id, suite, passed, total),
+        )
+        row = conn.execute(
+            "SELECT id FROM regression_results WHERE finding_id = ? AND suite = ?",
+            (finding_id, suite),
+        ).fetchone()
+        return row["id"]
+
+def get_regression_results_for_finding(finding_id: int, db_path: Path = DB_PATH) -> list[sqlite3.Row]:
+    """Return regression suite counts in display order."""
+    with get_connection(db_path) as conn:
+        return conn.execute(
+            """SELECT * FROM regression_results WHERE finding_id = ?
+               ORDER BY CASE suite WHEN 'unit' THEN 1 WHEN 'integration' THEN 2 WHEN 'proof' THEN 3 END""",
+            (finding_id,),
+        ).fetchall()
 
 def insert_patch(
     finding_id: int,

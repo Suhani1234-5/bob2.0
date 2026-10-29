@@ -25,7 +25,7 @@ async def start_verification(req: VerifyRequest, background_tasks: BackgroundTas
 
     existing = db.get_pr_by_repo_and_number(repo_name, req.pr_number)
     if existing:
-        return PullRequest(**dict(existing))
+        return PullRequest(**dict(existing), **db.get_pr_test_metrics(existing["id"]))
 
     pr_id = db.insert_pull_request(
         repository=repo_name,
@@ -35,17 +35,27 @@ async def start_verification(req: VerifyRequest, background_tasks: BackgroundTas
         branch=gh_pr["head"]["ref"],
         base_branch=gh_pr["base"]["ref"],
         status="analyzing",
+        additions=int(gh_pr.get("additions") or 0),
+        deletions=int(gh_pr.get("deletions") or 0),
+        changed_files_count=int(gh_pr.get("changed_files") or 0),
     )
 
     created_pr = db.get_pr_by_id(pr_id)
-    return PullRequest(**dict(created_pr))
+    return PullRequest(**dict(created_pr), **db.get_pr_test_metrics(pr_id))
+
+@router.get("/pr/lookup", response_model=PullRequest)
+def get_pr_by_repo_and_number(repository: str, pr_number: int):
+    row = db.get_pr_by_repo_and_number(repository, pr_number)
+    if not row:
+        raise HTTPException(status_code=404, detail="PR not found")
+    return PullRequest(**dict(row), **db.get_pr_test_metrics(row["id"]))
 
 @router.get("/pr/{pr_id}", response_model=PullRequest)
 def get_pr(pr_id: int):
     row = db.get_pr_by_id(pr_id)
     if not row:
         raise HTTPException(status_code=404, detail="PR not found")
-    return PullRequest(**dict(row))
+    return PullRequest(**dict(row), **db.get_pr_test_metrics(pr_id))
 
 @router.get("/pr/{pr_id}/findings", response_model=list[Finding])
 def get_findings_for_pr(pr_id: int):
@@ -73,6 +83,12 @@ def get_finding_evidence(finding_id: int):
 @router.get("/findings/{finding_id}/tests", response_model=list[TestExecution])
 def get_finding_tests(finding_id: int):
     return [TestExecution(**dict(t)) for t in db.get_tests_for_finding(finding_id)]
+
+@router.get("/findings/{finding_id}/regression")
+def get_finding_regression(finding_id: int):
+    if not db.get_finding_by_id(finding_id):
+        raise HTTPException(status_code=404, detail="Finding not found")
+    return [dict(row) for row in db.get_regression_results_for_finding(finding_id)]
 
 @router.get("/findings/{finding_id}/patch", response_model=Patch)
 def get_finding_patch(finding_id: int):
